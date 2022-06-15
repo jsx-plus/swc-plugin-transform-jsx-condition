@@ -1,0 +1,27 @@
+{
+  "name": "swc-plugin-transform-jsx-condition",
+  "version": "0.1.0",
+  "description": "Support of transform jsx condition directive based on SWC",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc -d",
+    "test": "jest"
+  },
+  "types": "./lib/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jsx-plus/swc-plugin-transform-jsx-condition.git"
+  },
+  "devDependencies": {
+    "@swc/core": "^1.2.203",
+    "jest": "^24.9.0",
+    "typescript": "^4.7.3"
+  },
+  "dependencies": {},
+  "author": "andycall",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jsx-plus/swc-plugin-transform-jsx-condition/issues"
+  },
+  "homepage": "https://github.com/jsx-plus/swc-plugin-transform-jsx-condition#readme"
+}
