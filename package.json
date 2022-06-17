@@ -1,6 +1,6 @@
 {
   "name": "swc-plugin-transform-jsx-condition",
-  "version": "0.1.0",
+  "version": "0.1.0-beta.1",
   "description": "Support of transform jsx condition directive based on SWC",
   "main": "lib/index.js",
   "scripts": {
