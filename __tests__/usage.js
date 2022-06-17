@@ -1,64 +1,27 @@
 const swc = require('@swc/core')
 const path = require('path')
+const fs = require('fs');
 const JSXConditionTransformPlugin = require(path.join(__dirname, '../lib/index.js')).default;
 
-it('should convert jsx x-if condition', () => {
+describe('', () => {
+  const fixturesDir = path.join(__dirname, '__fixtures__');
+  fs.readdirSync(fixturesDir).map((caseName) => {
+    it(`should ${caseName.split('-').join(' ')}`, () => {
+      const fixtureDir = path.join(fixturesDir, caseName);
+      const actualPath = path.join(fixtureDir, 'actual.js');
+      const actualCode = fs.readFileSync(actualPath, {encoding: 'utf-8'});
+      const expectedCode = fs.readFileSync(path.join(fixtureDir, 'expected.js'), { encoding: 'utf-8' });
 
-  let input = `import { createElement } from 'react';
-
-function Foo(props) {
-  return (
-    <View {...props} x-if={true} className="container">
-      <View x-if={condition}>First</View>
-    </View>
-  )
-}`;
-
-  const transformedOutput = swc.transformSync(input, {
-    jsc: {
-      parser: {
-        jsx: true
-      },
-    },
-    plugin: JSXConditionTransformPlugin
-  });
-
-  const output = `function _extends() {
-    _extends = Object.assign || function(target) {
-        for(var i = 1; i < arguments.length; i++){
-            var source = arguments[i];
-            for(var key in source){
-                if (Object.prototype.hasOwnProperty.call(source, key)) {
-                    target[key] = source[key];
-                }
-            }
-        }
-        return target;
-    };
-    return _extends.apply(this, arguments);
-}
-import { createCondition as __create_condition__ } from "babel-runtime-jsx-plus";
-import { createElement } from "react";
-function Foo(props) {
-    return __create_condition__([
-        function() {
-            return true;
+      const transformedOutput = swc.transformSync(actualCode, {
+        jsc: {
+          parser: {
+            jsx: true
+          },
         },
-        function() {
-            return React.createElement(View, _extends({}, props, {
-                className: "container"
-            }), __create_condition__([
-                function() {
-                    return condition;
-                },
-                function() {
-                    return React.createElement(View, null, "First");
-                }
-            ]));
-        }
-    ]);
-}
-`;
+        plugin: JSXConditionTransformPlugin
+      });
 
-  expect(transformedOutput.code).toBe(output);
+      expect(transformedOutput.code.trim()).toBe(expectedCode.trim());
+    });
+  });
 });
