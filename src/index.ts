@@ -1,16 +1,16 @@
 import {
   Expression,
-  JSXElement, Program, Statement,
+  JSXElement, JSXText, Program,
 } from '@swc/core';
 import Visitor from "@swc/core/Visitor";
 import {
-  ExprOrSpread
+  ExprOrSpread, JSXElementChild
 } from "@swc/core/types";
 import {
   buildArrayExpression,
-  buildArrowFunctionExpression, buildCallExpression, buildIdentifier, buildImportDeclaration,
+  buildArrowFunctionExpression, buildBooleanLiteral, buildCallExpression, buildIdentifier, buildImportDeclaration,
   buildJSXElement,
-  buildJSXExpressionContainer, buildNamedImportSpecifier, buildNullLiteral, buildStringLiteral
+  buildJSXExpressionContainer, buildJSXText, buildNamedImportSpecifier, buildNullLiteral, buildStringLiteral
 } from "./utils";
 
 enum JSXConditionType {
@@ -40,7 +40,7 @@ function isJSXCondition(n: JSXElement) {
 }
 
 type JSXCondition = {
-  type: 'x-if' | 'x-elseif' | 'x-else',
+  type: JSXConditionType;
   expression?: Expression;
 }
 
@@ -99,12 +99,12 @@ function JSXConditionToStandard(n: JSXElement) {
 }
 
 
-function transformJSXCondition(n: JSXElement, isChild: boolean): JSXElement {
-  n.children = n.children.map((n) => {
-    if (n.type === 'JSXElement') {
-      return transformJSXCondition(n, true);
+function transformJSXCondition(n: JSXElement, currentList: JSXElementChild[], currentIndex: number): JSXElement | JSXText {
+  n.children = n.children.map((c, i) => {
+    if (c.type === 'JSXElement') {
+      return transformJSXCondition(c, n.children, i);
     }
-    return n;
+    return c;
   });
 
   if (!isJSXCondition(n)) {
@@ -112,15 +112,90 @@ function transformJSXCondition(n: JSXElement, isChild: boolean): JSXElement {
   }
 
   let condition = getJSXCondition(n)!;
+  if (condition.type === JSXConditionType.else || condition.type === JSXConditionType.elseif) {
+    // @ts-ignore
+    if (!n.__indented) {
+      return n;
+    }
+
+    return buildJSXText('');
+  }
+
+  let elseIfJSXElement : JSXElement | null = null;
+  let elseJSXElement: JSXElement | null = null;
+
+  let isRoot = currentIndex === -1;
+  if (!isRoot && condition.type === JSXConditionType.if) {
+    let indent = 1;
+    let nextSibling = currentList[currentIndex + indent];
+    while (nextSibling && nextSibling.type != 'JSXElement') {
+      indent++;
+      nextSibling = currentList[currentIndex + indent];
+    }
+
+    if (nextSibling) {
+      let nextJSXKind = getJSXCondition(nextSibling);
+      if (nextJSXKind && nextJSXKind.type === JSXConditionType.elseif) {
+        elseIfJSXElement = nextSibling;
+        indent++;
+        nextSibling = currentList[currentIndex + indent];
+        while (nextSibling && nextSibling.type != 'JSXElement') {
+          indent++;
+          nextSibling = currentList[currentIndex + indent];
+        }
+
+        if (nextSibling) {
+          elseJSXElement = nextSibling;
+        }
+      } else if (nextJSXKind && nextJSXKind.type === JSXConditionType.else) {
+        elseJSXElement = nextSibling;
+      }
+    }
+  }
 
   let elements: ExprOrSpread[] = [
     {
-      expression: buildArrowFunctionExpression([], getJSXCondition(n)!.expression!)
+      expression: buildArrayExpression([
+        {
+          expression: buildArrowFunctionExpression([], condition.expression!)
+        },
+        {
+          expression: buildArrowFunctionExpression([], JSXConditionToStandard(n))
+        }
+      ])
     },
-    {
-      expression: buildArrowFunctionExpression([], JSXConditionToStandard(n))
-    }
   ];
+
+  if (elseIfJSXElement) {
+    // @ts-ignore
+    elseIfJSXElement.__indented = true;
+
+    elements.push({
+      expression: buildArrayExpression([
+        {
+          expression: buildArrowFunctionExpression([], getJSXCondition(elseIfJSXElement)!.expression!)
+        },
+        {
+          expression: buildArrowFunctionExpression([], JSXConditionToStandard(elseIfJSXElement))
+        }
+      ])
+    });
+  }
+
+  if (elseJSXElement) {
+    // @ts-ignore
+    elseJSXElement.__indented = true;
+    elements.push({
+      expression: buildArrayExpression([
+        {
+          expression: buildArrowFunctionExpression([], buildBooleanLiteral(true))
+        },
+        {
+          expression: buildArrowFunctionExpression([], JSXConditionToStandard(elseJSXElement))
+        }
+      ])
+    });
+  }
 
   let body = buildCallExpression(buildIdentifier('__create_condition__', false), [
     {
@@ -128,13 +203,14 @@ function transformJSXCondition(n: JSXElement, isChild: boolean): JSXElement {
     }
   ]) as any;
 
-  return isChild ? buildJSXExpressionContainer(body) : body;
+
+  return isRoot ? body : buildJSXExpressionContainer(body);
 }
 
 class JSXConditionTransformer extends Visitor {
   visitJSXElement(n: JSXElement): JSXElement {
     if (isJSXCondition(n)) {
-      return transformJSXCondition(n, false);
+      return transformJSXCondition(n, [], -1) as JSXElement;
     }
 
     return n;

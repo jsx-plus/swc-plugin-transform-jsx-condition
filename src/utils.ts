@@ -1,9 +1,9 @@
 import {
-  ArrowFunctionExpression,
+  ArrowFunctionExpression, BooleanLiteral,
   CallExpression,
   Expression, Identifier, ImportDeclaration,
   JSXElement,
-  JSXExpressionContainer,
+  JSXExpressionContainer, JSXText,
   NullLiteral
 } from "@swc/core";
 import {
@@ -78,6 +78,21 @@ export function buildImportDeclaration(specifiers: ImportSpecifier[], source: St
 export function buildStringLiteral(value: string): StringLiteral {
   return buildBaseExpression({
     type: 'StringLiteral',
+    value: value
+  });
+}
+
+export function buildJSXText(value: ''): JSXText {
+  return buildBaseExpression<JSXText>({
+    type: 'JSXText',
+    value: value,
+    raw: value
+  })
+}
+
+export function buildBooleanLiteral(value: boolean) {
+  return buildBaseExpression<BooleanLiteral>({
+    type: 'BooleanLiteral',
     value: value
   });
 }
