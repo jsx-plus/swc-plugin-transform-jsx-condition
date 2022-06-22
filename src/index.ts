@@ -2,16 +2,16 @@ import {
   Expression,
   JSXElement, JSXText, Program,
 } from '@swc/core';
-import Visitor from "@swc/core/Visitor";
+import Visitor from '@swc/core/Visitor';
 import {
   ExprOrSpread, JSXElementChild
-} from "@swc/core/types";
+} from '@swc/core/types';
 import {
   buildArrayExpression,
   buildArrowFunctionExpression, buildBooleanLiteral, buildCallExpression, buildIdentifier, buildImportDeclaration,
   buildJSXElement,
   buildJSXExpressionContainer, buildJSXText, buildNamedImportSpecifier, buildNullLiteral, buildStringLiteral
-} from "./utils";
+} from './utils';
 
 enum JSXConditionType {
   if = 'x-if',

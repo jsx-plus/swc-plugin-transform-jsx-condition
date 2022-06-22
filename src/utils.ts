@@ -5,7 +5,7 @@ import {
   JSXElement,
   JSXExpressionContainer, JSXText,
   NullLiteral
-} from "@swc/core";
+} from '@swc/core';
 import {
   Argument,
   ArrayExpression, BlockStatement,
@@ -15,7 +15,7 @@ import {
   JSXElementChild,
   JSXOpeningElement, NamedImportSpecifier,
   Node, Pattern, StringLiteral, Super, TsTypeParameterInstantiation
-} from "@swc/core/types";
+} from '@swc/core/types';
 
 export function buildBaseExpression<T>(other: any): Node & HasSpan & T {
   return {
