@@ -16,20 +16,25 @@ import { createCondition as __create_condition__ } from "babel-runtime-jsx-plus"
 import { createElement } from "react";
 function Foo(props) {
     return __create_condition__([
-        function() {
-            return true;
-        },
-        function() {
-            return React.createElement(View, _extends({}, props, {
-                className: "container"
-            }), __create_condition__([
-                function() {
-                    return condition;
-                },
-                function() {
-                    return React.createElement(View, null, "First");
-                }
-            ]));
-        }
+        [
+            function() {
+                return true;
+            },
+            function() {
+                return React.createElement(View, _extends({}, props, {
+                    className: "container"
+                }), __create_condition__([
+                    [
+                        function() {
+                            return condition;
+                        },
+                        function() {
+                            return React.createElement(View, null, "First");
+                        }
+                    ]
+                ]));
+            }
+        ]
     ]);
 }
+

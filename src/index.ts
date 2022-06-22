@@ -114,88 +114,60 @@ function transformJSXCondition(n: JSXElement, currentList: JSXElementChild[], cu
   let condition = getJSXCondition(n)!;
   if (condition.type === JSXConditionType.else || condition.type === JSXConditionType.elseif) {
     // @ts-ignore
-    if (!n.__indented) {
-      return n;
+    if (n.__skip) {
+      return buildJSXText('');
     }
 
-    return buildJSXText('');
+    return n;
   }
-
-  let elseIfJSXElement : JSXElement | null = null;
-  let elseJSXElement: JSXElement | null = null;
 
   let isRoot = currentIndex === -1;
-  if (!isRoot && condition.type === JSXConditionType.if) {
-    let indent = 1;
-    let nextSibling = currentList[currentIndex + indent];
-    while (nextSibling && nextSibling.type != 'JSXElement') {
-      indent++;
-      nextSibling = currentList[currentIndex + indent];
-    }
 
-    if (nextSibling) {
-      let nextJSXKind = getJSXCondition(nextSibling);
-      if (nextJSXKind && nextJSXKind.type === JSXConditionType.elseif) {
-        elseIfJSXElement = nextSibling;
-        indent++;
-        nextSibling = currentList[currentIndex + indent];
-        while (nextSibling && nextSibling.type != 'JSXElement') {
-          indent++;
-          nextSibling = currentList[currentIndex + indent];
-        }
+  type JSXConditionExpression = {
+    condition: Expression;
+    jsxElement: JSXElement;
+  };
 
-        if (nextSibling) {
-          elseJSXElement = nextSibling;
-        }
-      } else if (nextJSXKind && nextJSXKind.type === JSXConditionType.else) {
-        elseJSXElement = nextSibling;
-      }
-    }
-  }
-
-  let elements: ExprOrSpread[] = [
+  let conditions: JSXConditionExpression[] = [
     {
-      expression: buildArrayExpression([
-        {
-          expression: buildArrowFunctionExpression([], condition.expression!)
-        },
-        {
-          expression: buildArrowFunctionExpression([], JSXConditionToStandard(n))
-        }
-      ])
-    },
+      condition: condition!.expression!,
+      jsxElement: n
+    }
   ];
 
-  if (elseIfJSXElement) {
-    // @ts-ignore
-    elseIfJSXElement.__indented = true;
+  let continueSearch = true;
+  let indent = 1;
+  let nextJSXKind: JSXCondition | undefined;
+  do {
+    let nextSibling = currentList[currentIndex + indent];
+    if (nextSibling && nextSibling.type === 'JSXText' && nextSibling.value.trim() === '') {
+      indent++;
+    } else if (nextSibling && nextSibling.type === 'JSXElement' && (nextJSXKind = getJSXCondition(nextSibling)) && nextJSXKind && nextJSXKind.type != JSXConditionType.if) {
+      conditions.push({
+        condition: nextJSXKind.type === JSXConditionType.elseif ? getJSXCondition(nextSibling)!.expression! : buildBooleanLiteral(true),
+        jsxElement: nextSibling
+      });
+      // @ts-ignore
+      nextSibling.__skip = true;
+      continueSearch = nextJSXKind.type === JSXConditionType.elseif;
+      indent++;
+    } else {
+      continueSearch = false;
+    }
+  } while (continueSearch);
 
-    elements.push({
+  let elements: ExprOrSpread[] = conditions.map((con) => {
+    return {
       expression: buildArrayExpression([
         {
-          expression: buildArrowFunctionExpression([], getJSXCondition(elseIfJSXElement)!.expression!)
+          expression: buildArrowFunctionExpression([], con.condition)
         },
         {
-          expression: buildArrowFunctionExpression([], JSXConditionToStandard(elseIfJSXElement))
+          expression: buildArrowFunctionExpression([], JSXConditionToStandard(con.jsxElement))
         }
       ])
-    });
-  }
-
-  if (elseJSXElement) {
-    // @ts-ignore
-    elseJSXElement.__indented = true;
-    elements.push({
-      expression: buildArrayExpression([
-        {
-          expression: buildArrowFunctionExpression([], buildBooleanLiteral(true))
-        },
-        {
-          expression: buildArrowFunctionExpression([], JSXConditionToStandard(elseJSXElement))
-        }
-      ])
-    });
-  }
+    }
+  });
 
   let body = buildCallExpression(buildIdentifier('__create_condition__', false), [
     {
