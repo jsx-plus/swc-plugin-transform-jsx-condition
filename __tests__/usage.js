@@ -1,11 +1,27 @@
 const swc = require('@swc/core')
 const path = require('path')
-const ConsoleStripper = require(path.join(__dirname, '../lib/index.js')).default;
+const fs = require('fs');
+const JSXConditionTransformPlugin = require(path.join(__dirname, '../lib/index.js')).default;
 
-it('should strip console call', () => {
-    const output = swc.transformSync(`console.log('Foo')`, {
-        plugin: (m) => (new ConsoleStripper()).visitModule(m),
+describe('', () => {
+  const fixturesDir = path.join(__dirname, '__fixtures__');
+  fs.readdirSync(fixturesDir).map((caseName) => {
+    it(`should ${caseName.split('-').join(' ')}`, () => {
+      const fixtureDir = path.join(fixturesDir, caseName);
+      const actualPath = path.join(fixtureDir, 'actual.js');
+      const actualCode = fs.readFileSync(actualPath, {encoding: 'utf-8'});
+      const expectedCode = fs.readFileSync(path.join(fixtureDir, 'expected.js'), { encoding: 'utf-8' });
+
+      const transformedOutput = swc.transformSync(actualCode, {
+        jsc: {
+          parser: {
+            jsx: true
+          },
+        },
+        plugin: JSXConditionTransformPlugin
+      });
+
+      expect(transformedOutput.code.trim()).toBe(expectedCode.trim());
     });
-
-    expect(output.code.replace(/\n/g, '')).toBe('void 0;')
-})
+  });
+});
